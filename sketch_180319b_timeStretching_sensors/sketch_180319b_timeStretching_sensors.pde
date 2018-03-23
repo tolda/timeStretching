@@ -12,7 +12,7 @@ final float precision=pow(10, -2);
 SoundFile soundfile;
 int prevMS, currMS;
 boolean start=true;
-float currRate = 1, currBPM=BPM, prevBPM = 1, prevRate=1; // prev only used for the graphics!
+float currRate = 1, currBPM=BPM;
 float[] rates = new float[6];
 float[] weights = {.1, .125, .25, .5, .25, .125};
 float totWeights=0;
@@ -25,26 +25,13 @@ OscP5 oscP5;
 sensorData gyr;
 sensorData orient;
 float ab=0, prevAb, maxAbs=0, maxAb=0;
-float prevV, prevV2, prevV3;
+float[] prevRate = {1, 1};
 int triggerIndex=0;
 int prevMillis;
 boolean positiveOrientation = false;
 boolean sensorsCalibrated = false, sensorsConnected = false;
 
-// -------------------------------------------------
 void setup() {
-
-  // rounding test
-  //float[] test = {.5, .6, .7, .8, .9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
-  //for (int i=0;i<13;i++)
-  //{
-  //  float tmp;
-  //  if(test[i]>1)
-  //    tmp = (int(test[i] * 10) + int(test[i]*10)%2)/10.0;
-  //  else
-  //    tmp = (int(test[i] * 10) - int(test[i]*10)%2)/10.0;
-  //  println(tmp);
-  //}
   
   // sound
   for (int i=0; i<weights.length; i++)
@@ -66,7 +53,6 @@ void setup() {
   orient = new sensorData("orientation");
   oscP5 = new OscP5(this,IN_PORT_NUMBER);
   oscP5.plug(this,"gyrX","/gyroscope/X");
-  //oscP5.plug(this,"gyrY","/gyroscope/Y");
   oscP5.plug(this,"gyrZ","/gyroscope/Z");
   oscP5.plug(this,"orientZ","/orientation/Z");
   
@@ -83,20 +69,7 @@ void draw() {
     
     // graphics
     background(0);
-    
-        // plot line
-        //if (frameCount==600)
-        //{
-        //  frameCount = 1;
-        //  background(100,100,100);
-        //}
-        
-        //line(frameCount-1, prevRate*50+100, frameCount, currRate*50+100);
-        //prevRate = currRate;
-        
-        //line(frameCount-1, prevBPM+height/2, frameCount, currBPM+height/2);
-        //prevBPM = currBPM;
-    
+
     // sensors
     int tmpMillis = millis();
     prevAb=ab;
@@ -134,7 +107,7 @@ void draw() {
     if(orient.z==sensorData.RESET || gyr.x==sensorData.RESET || gyr.z==sensorData.RESET)
     {
       background(255,0,0);
-      println("orient.z: " + orient.z + "gyr.y: " + gyr.y + "gyr.z: " + gyr.z);
+      //println("orient.z: " + orient.z + " gyr.y: " + gyr.y + " gyr.z: " + gyr.z);
       String s = "SENSORS NOT CONNECTED";
       textSize(round(height/10));
       fill(255);
@@ -187,15 +160,6 @@ void beatDetected() {
       currBPM = round(60/(deltaMS/1000.0));
       currRateTMP = round(currBPM  * 10 / BPM)/10.0; // keep only 1 decimal
       println(currRateTMP);
-      // round to even decimals
-      //if(currRateTMP>1)
-      //{
-      //  currRateTMP = (int(currRateTMP * 10) + int(currRateTMP*10)%2)/10.0;
-      //}
-      //else
-      //{
-      //  currRateTMP = (int(currRateTMP * 10) - int(currRateTMP*10)%2)/10.0;
-      //}
       for (i=0; i<rates.length-1; i++)
       {
         print(rates[i] + " ");
@@ -213,16 +177,26 @@ void beatDetected() {
       }
       println();
       currRate = round(currRateTMP/totWeights * 10)/10.0;
-      // round to even decimals
-      println("before rounding: " + currRate);
-      if(currRate>1)
-      {
-        currRate = (int(currRate * 10) + int(currRate*10)%2)/10.0;
+      // if it is the third change in three beats keep the previous rate
+      if(prevRate[0] != prevRate[1])
+      {  
+        currRate = prevRate[1];
       }
       else
       {
-        currRate = (int(currRate * 10) - int(currRate*10)%2)/10.0;
+        // round to even decimals (.0 .2 .4 .6 .8)
+        println("before rounding: " + currRate);
+        if(currRate>1)
+        {
+          currRate = (int(currRate * 10) + int(currRate*10)%2)/10.0;
+        }
+        else
+        {
+          currRate = (int(currRate * 10) - int(currRate*10)%2)/10.0;
+        }
       }
+      prevRate[0] = prevRate[1];
+      prevRate[1] = currRate;
       //rates[rates.length-1] = currRate; // NO! 
       println("BPM: " + currBPM + " rate: " + currRate);
     }
@@ -235,10 +209,6 @@ void beatDetected() {
 
 void gyrX(float accValue){
   gyr.x = accValue;
-}
-
-void gyrY(float accValue){
-  gyr.y = accValue;
 }
 
 void gyrZ(float accValue){
