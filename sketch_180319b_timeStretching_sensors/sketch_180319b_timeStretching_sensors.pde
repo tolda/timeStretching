@@ -158,8 +158,8 @@ void beatDetected() {
     if (deltaMS <= MAX_DELTA_MS)
     {
       currBPM = round(60/(deltaMS/1000.0));
-      currRateTMP = round(currBPM  * 10 / BPM)/10.0; // keep only 1 decimal
-      println(currRateTMP);
+      currRateTMP = round(currBPM  * 100 / BPM)/100.0; // keep only 1 decimal
+      println("curr rate: " + currRateTMP);
       for (i=0; i<rates.length-1; i++)
       {
         print(rates[i] + " ");
@@ -176,7 +176,7 @@ void beatDetected() {
         currRateTMP += rates[i] * weights[i];
       }
       println();
-      currRate = round(currRateTMP/totWeights * 10)/10.0;
+      currRate = round(currRateTMP/totWeights * 100)/100.0;
       // if it is the third change in three beats keep the previous rate
       if(prevRate[0] != prevRate[1])
       {  
@@ -186,13 +186,17 @@ void beatDetected() {
       {
         // round to even decimals (.0 .2 .4 .6 .8)
         println("before rounding: " + currRate);
-        if(currRate>1)
+        if(currRate>1.1)
         {
           currRate = (int(currRate * 10) + int(currRate*10)%2)/10.0;
         }
-        else
+        else if(currRate<0.9)
         {
           currRate = (int(currRate * 10) - int(currRate*10)%2)/10.0;
+        }
+        else
+        {
+          currRate = 1;
         }
       }
       prevRate[0] = prevRate[1];
