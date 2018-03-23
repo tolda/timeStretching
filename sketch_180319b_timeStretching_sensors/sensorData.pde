@@ -1,6 +1,6 @@
 class sensorData{
   
-  final float RESET = 10000;
+  static final float RESET = 10000;
   float x;
   float y;
   float z;

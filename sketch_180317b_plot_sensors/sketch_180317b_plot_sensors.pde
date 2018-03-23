@@ -20,21 +20,27 @@ void setup() {
   gyr = new sensorData("gyr");
   orient = new sensorData("orientation");
   
-  oscP5 = new OscP5(this,IN_PORT_NUMBER);
+  
   
   // the plugged method is called if an OSC message with the specified pattern is received
-  oscP5.plug(this,"accX","/accelerometer/X");
-  oscP5.plug(this,"accY","/accelerometer/Y");
-  oscP5.plug(this,"accZ","/accelerometer/Z");
-  
-  oscP5.plug(this,"gyrX","/gyroscope/X");
-  oscP5.plug(this,"gyrY","/gyroscope/Y");
-  oscP5.plug(this,"gyrZ","/gyroscope/Z");
-  
-  oscP5.plug(this,"orX","/orientation/X");
-  oscP5.plug(this,"orY","/orientation/Y");
-  oscP5.plug(this,"orZ","/orientation/Z");
-  
+  //oscP5.plug(this,"accX","/accelerometer/X");
+  //oscP5.plug(this,"accY","/accelerometer/Y");
+  //oscP5.plug(this,"accZ","/accelerometer/Z");
+  boolean marta=true;
+  if(marta){
+    oscP5 = new OscP5(this,IN_PORT_NUMBER);
+    oscP5.plug(this,"gyrX","/gyroscope/X");
+    oscP5.plug(this,"gyrY","/gyroscope/Y");
+    oscP5.plug(this,"gyrZ","/gyroscope/Z");
+    
+    oscP5.plug(this,"orX","/orientation/X");
+    oscP5.plug(this,"orY","/orientation/Y");
+    oscP5.plug(this,"orZ","/orientation/Z");
+  }
+  else{
+    oscP5 = new OscP5(this,55000);
+    oscP5.plug(this,"michele","/mobile1/gyro");
+  }
   prevMillis = millis();
 }
 
@@ -51,10 +57,10 @@ void draw() {
   {
     if(maxAb>ABS_THRESHOLD && tmpMillis-prevMillis>150 && gyr.z<0) //<small/slow movements don't trigger> && <one trigger per beat> && <only up->down triggers>
     {
-      println(gyr.z);
+      //println(gyr.z);
       triggerIndex++;
-      println(triggerIndex + " - triggered! " + maxAb + " " +  (tmpMillis-prevMillis));
-      println("");
+      //println(triggerIndex + " - triggered! " + maxAb + " " +  (tmpMillis-prevMillis));
+      //println("");
       //background(255, 102, 0);
       //rect(0,0,40,40);
       prevMillis = tmpMillis;
@@ -68,6 +74,7 @@ void draw() {
 
   if (frameCount==width)
   {
+    //stop();
     frameCount = 1;
     background(100,100,100);
   }
@@ -129,4 +136,22 @@ void orY(float oscValue){
 void orZ(float oscValue){
   orient.z = oscValue;
   //orient.printData();
+}
+
+void michele(float[] sensorValues){
+  //println(sensorValues[2]);
+  gyr.z=sensorValues[2];
+}
+
+ //incoming osc message are forwarded to the oscEvent method.
+void oscEvent(OscMessage theOscMessage) {
+  //print("### received an osc message.");
+  //println(" addrpattern: "+theOscMessage.addrPattern());
+  //println(" typetag: "+theOscMessage.typetag());
+
+  //gyr.x = theOscMessage.get(0).floatValue();
+  //gyr.y = theOscMessage.get(0).floatValue();
+  //gyr.z = theOscMessage.get(0).floatValue();
+  //orient.z = theOscMessage.get(0).floatValue();
+
 }
