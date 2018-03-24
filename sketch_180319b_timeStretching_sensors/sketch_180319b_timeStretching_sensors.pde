@@ -5,8 +5,8 @@ import processing.sound.*;
 import oscP5.*; 
 
 // sound
-final float BPM = 85;
-final float MAX_DELTA_MS = 3000;
+float BPM;
+final float MAX_DELTA_MS = 2000;
 final float precision=pow(10, -2);
 
 SoundFile soundfile;
@@ -18,19 +18,22 @@ float[] weights = {.1, .125, .25, .5, .25, .125};
 float totWeights=0;
 
 // sensors
-final int IN_PORT_NUMBER = 81;
+final int IN_PORT_NUMBER = 5081;
 final float ABS_THRESHOLD = 7;
-final float CRAZY_RATE = 3;
+final float CRAZY_RATE = 2.5;
+final int PREV_LENGTH = 5;
 OscP5 oscP5;
 sensorData gyr;
 sensorData orient;
 float ab=0, prevAb, maxAbs=0, maxAb=0;
-float[] prevRate = {1, 1};
+float[] prevRate = {1, 1, 1, 1, 1};
 int triggerIndex=0;
 int prevMillis;
 boolean positiveOrientation = false;
 boolean sensorsCalibrated = false, sensorsConnected = false;
 
+// graphics
+boolean first = true;
 void setup() {
   
   // sound
@@ -39,12 +42,17 @@ void setup() {
     rates[i] = 1;
     totWeights += weights[i];
   }
-
+  //***************************************************************************************************************
+  BPM = 85;
   soundfile = new SoundFile(this, "arcticMonkeys.mp3");
   
+  //BPM = 120;
+  //soundfile = new SoundFile(this, "go.mp3");
+  //***************************************************************************************************************
+  
   // graphics
-  size(640, 360);
-  //fullScreen();
+  //size(640, 360);
+  fullScreen();
   background(0);
   
   // sensors
@@ -68,8 +76,12 @@ void draw() {
     soundfile.rate(currRate);
     
     // graphics
-    background(0);
-
+    if(first)
+    {
+      background(0);
+      first = false;
+    }
+    
     // sensors
     int tmpMillis = millis();
     prevAb=ab;
@@ -80,21 +92,28 @@ void draw() {
     }
     else
     {
+      String s = "RATE: " + currRate;
+      textSize(round(height/10));
+      fill(255);
+      textAlign(CENTER, CENTER);
       if(maxAb>ABS_THRESHOLD && tmpMillis-prevMillis>150 && (gyr.z<0 && !positiveOrientation || gyr.z>=0 && positiveOrientation))  //<slow movements don't trigger> && <one trigger per beat> && <only up->down triggers>
       {
         // sound
         beatDetected();
+        
         // graphics
         triggerIndex++;
         println(triggerIndex + " - triggered! " + maxAb + " " + gyr.z);
         println("");
-        background(255, 102, 0);
+        background(105, 52, 0);
+        text(s, width/2, height/2);
         // sensors
         prevMillis = tmpMillis;
         maxAb = 0;
       }
       else{
         background(0);
+        text(s, width/2, height/2);
       }
     }
     if(ab>maxAbs && ab<1000)
@@ -159,33 +178,36 @@ void beatDetected() {
     {
       currBPM = round(60/(deltaMS/1000.0));
       currRateTMP = round(currBPM  * 100 / BPM)/100.0; // keep only 1 decimal
-      println("curr rate: " + currRateTMP);
+      //println("curr rate: " + currRateTMP);
       for (i=0; i<rates.length-1; i++)
       {
-        print(rates[i] + " ");
+        //print(rates[i] + " ");
         rates[i] = rates[i+1];
       }
-      println(rates[i]);
+      //println(rates[i]);
       if(currRateTMP<CRAZY_RATE)
       {
         rates[rates.length-1] = currRateTMP;
       }
       for (currRateTMP = 0, i=0; i<rates.length; i++)
       {
-        print(rates[i] + " ");
+        //print(rates[i] + " ");
         currRateTMP += rates[i] * weights[i];
       }
       println();
       currRate = round(currRateTMP/totWeights * 100)/100.0;
       // if it is the third change in three beats keep the previous rate
-      if(prevRate[0] != prevRate[1])
-      {  
-        currRate = prevRate[1];
+      boolean constPrev=true;
+      for(i=0;i<PREV_LENGTH-1;i++)
+      {
+        println(prevRate[i]==prevRate[i+1]);
+        constPrev = constPrev && prevRate[i]==prevRate[i+1];
       }
-      else
+      
+      if(constPrev)
       {
         // round to even decimals (.0 .2 .4 .6 .8)
-        println("before rounding: " + currRate);
+        //println("before rounding: " + currRate);
         if(currRate>1.1)
         {
           currRate = (int(currRate * 10) + int(currRate*10)%2)/10.0;
@@ -199,8 +221,15 @@ void beatDetected() {
           currRate = 1;
         }
       }
-      prevRate[0] = prevRate[1];
-      prevRate[1] = currRate;
+      else
+      {  
+        currRate = prevRate[PREV_LENGTH-1];
+      }
+      for(i=0;i<PREV_LENGTH-1;i++)
+      {
+        prevRate[i] = prevRate[i+1];
+      }
+      prevRate[i] = currRate;
       //rates[rates.length-1] = currRate; // NO! 
       println("BPM: " + currBPM + " rate: " + currRate);
     }
